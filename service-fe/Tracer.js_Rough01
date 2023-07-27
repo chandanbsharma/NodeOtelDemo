@@ -1,0 +1,63 @@
+const { MeterProvider } = require( '@opentelemetry/sdk-metrics-base');
+const { NodeTracerProvider } = require( '@opentelemetry/sdk-trace-node');
+const { SimpleSpanProcessor, BatchSpanProcessor, ConsoleSpanExporter, } = require( '@opentelemetry/sdk-trace-base');
+const { Resource } = require( '@opentelemetry/resources');
+const { SemanticResourceAttributes } = require( '@opentelemetry/semantic-conventions');
+const { registerInstrumentations } = require( '@opentelemetry/instrumentation');
+const { AutoInstrumentationsNode     } = require( '@opentelemetry/auto-instrumentations-node');
+const { ExpressInstrumentation, ExpressRequestHookInformation } = require( 'opentelemetry-instrumentation-express');
+const { HttpInstrumentation } = require( '@opentelemetry/instrumentation-http');
+const { Span, Baggage } = require( '@opentelemetry/api');
+const { AlwaysOnSampler, AlwaysOffSampler, ParentBasedSampler, TraceIdRatioBasedSampler } = require( '@opentelemetry/core');
+const { serviceSyncDetector } = require( 'opentelemetry-resource-detector-service');
+const { CollectorTraceExporter, CollectorMetricExporter, } = require( '@opentelemetry/exporter-collector');
+
+
+module.exports= (serviceName, metricPort) => {
+
+    // Define metrics
+    // const metricExporter = new PrometheusExporter({ port: metricPort }, () => {
+    //     console.log(`scrape: http://localhost:${metricPort}${PrometheusExporter.DEFAULT_OPTIONS.endpoint}`);
+    // });
+
+   // Define traces
+    //Jaeger
+    //const traceExporter = new JaegerExporter({ endpoint: 'http://localhost:14268/api/traces'});
+        
+    //Provider
+    const provider = new NodeTracerProvider({
+        resource: new Resource({
+            [SemanticResourceAttributes.SERVICE_NAME]: serviceName,
+            'my-vfresource':1
+        }),
+        sampler:new ParentBasedSampler({
+            root: new TraceIdRatioBasedSampler(1)
+        })
+    });
+
+    //metric
+    const metricExporter = new CollectorMetricExporter({
+        url: 'http://opentelemetrycollector:4318/v1/metrics'
+    })
+    const meter = new MeterProvider({ exporter: metricExporter, interval: 100000 }).getMeter(serviceName);
+
+    //trace
+     const traceExporter = new CollectorTraceExporter({
+         url: 'http://opentelemetrycollector:4318/v1/trace'
+     })
+    provider.addSpanProcessor(new SimpleSpanProcessor(traceExporter));
+    provider.register();
+    registerInstrumentations({
+        instrumentations: [
+            new ExpressInstrumentation({
+                requestHook: (span, reqInfo) => {
+                    span.setAttribute('request-headers',JSON.stringify(reqInfo.req.headers))
+                }
+            }),
+            new HttpInstrumentation(),
+            //AutoInstrumentationsNode
+        ]
+    });
+    const tracer = provider.getTracer(serviceName);
+    return { meter, tracer };
+}

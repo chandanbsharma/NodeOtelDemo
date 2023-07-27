@@ -1,0 +1,18 @@
+# instrumentation.yml
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: nodejs-instrumentation
+  namespace:
+spec:
+  exporter:
+    endpoint: http://opentelemetrycollector:4317
+    endpoint: http://opentelemetrycollector:4318
+  propagators:
+    - tracecontext
+    - baggage
+    - b3
+  sampler:
+    type: always_on
+
+  nodejs:

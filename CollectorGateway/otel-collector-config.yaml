@@ -1,0 +1,63 @@
+apiVersion: opentelemetry.io/v1alpha1
+kind: OpenTelemetryCollector
+metadata:
+  name: otel-collector
+  namespace: opentelemetry
+  labels:
+    app: opentelemetry
+    component: otel-collector
+spec:
+  mode: deployment
+config: |
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+        http:
+  processors:
+   memory_limiter:
+    check_interval: 1s
+    limit_percentage: 70
+    spike_limit_percentage: 20
+   batch:
+     timeout: 5s
+     sendBatchSize: 512
+     sendBatchInterval: 5s
+   resource:
+      attributes:
+        - key: test.key
+          value: "test-value"
+          action: insert
+  exporters:
+    googlecloud:
+        projectID: demootel
+        #credentialsFile: /etc/credentials/stackdriver.json
+        #metricsType: opencensus
+        #logEntryType: json
+  extensions:
+    pprof:
+      endpoint: :1888
+    health_check:
+    zpages:
+      endpoint: :55679
+  service:
+    telemetry:
+      logs:
+        # level: "debug"
+    # extensions: [zpages, health_check, pprof]
+    pipelines:
+      traces:
+        receivers: [otlp]
+        processors:
+        exporters: [googlecloud]
+      # metrics:
+      #   receivers: [otlp]
+      #   processors: [batch, resource, memory_limiter]
+      #   exporters: [googlecloud]
+      # logs:
+      #   receivers: [otlp]
+      #   processors:[batch, resource, memory_limiter]           
+      #         timeout: 5s
+      #         sendBatchSize: 512
+      #         sendBatchInterval: 5s
+      #   exporters: [googlecloud]

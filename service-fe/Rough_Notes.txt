@@ -1,0 +1,26 @@
+kubectl apply -f ./v0.1_opentelemetrycollector.yml --overwrite=true
+
+deployment.apps/opentelemetrycollector created
+service/opentelemetrycollector created
+configmap/collector-gateway-config-template configured
+
+
+#********************************* Deployment and Delete
+docker build -t fe-service .
+docker tag fe-service gcr.io/demootel/fe-service
+docker push gcr.io/demootel/fe-service
+
+# kubectl delete -f fe-application.yml
+
+# Apply the application.yaml file
+kubectl apply -f instrumentation.yml --overwrite=true
+
+kubectl apply -f ./fe-application.yml --overwrite=true
+
+BELOW is for SPRING BOOT Application . It can be injected in Application.yml file.
+     annotations:
+        instrumentation.opentelemetry.io/inject-nodejs: 'nodejs-instrumentation'
+
+
+********Node Injector******
+//   -r ./tracer.js

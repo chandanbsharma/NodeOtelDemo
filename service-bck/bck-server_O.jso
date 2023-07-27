@@ -1,0 +1,14 @@
+const tracer = require('./tracer.js')('backend-service', 3002);
+const app = require('express')();
+//const app = express();
+
+app.get('/name', (req, res) => {
+  const names = ['Alice', 'Bob', 'Charlie', 'David', 'Emma'];
+  const randomName = names[Math.floor(Math.random() * names.length)];
+  res.send({ name: randomName });
+});
+
+const port = 3001;
+app.listen(port, () => {
+  console.log('Backend service is running on port 3001');
+});

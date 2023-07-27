@@ -1,0 +1,43 @@
+apiVersion: opentelemetry.io/v1alpha1
+kind: Collector
+metadata:
+  name: opentelemetrycollector
+spec:
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+          http:
+    exporters:
+      googlecloud:
+        projectID: vf-tracedemo
+        credentialsFile: /etc/credentials/stackdriver.json
+        metricsType: opencensus
+        logEntryType: json
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors:
+            batch:
+              timeout: 1s
+              send_batch_size: 512
+              send_batch_interval: 1s
+          exporters: [googlecloud]
+        metrics:
+          receivers: [otlp]
+          processors:
+            batch:
+              timeout: 1s
+              send_batch_size: 512
+              send_batch_interval: 1s
+          exporters: [googlecloud]
+        logs:
+          receivers: [otlp]
+          processors:
+            batch:
+              timeout: 1s
+              send_batch_size: 512
+              send_batch_interval: 1s
+          exporters: [googlecloud]
